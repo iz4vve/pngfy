@@ -15,8 +15,11 @@ import (
 	"github.com/ungerik/go-cairo"
 )
 
-var WIDTH = 300
-var HEIGHT = 450
+// WIDTH is based on A4 ratio
+var WIDTH = 210 * 4
+
+// HEIGHT is based on A4 ratio
+var HEIGHT = 297 * 4
 
 func main() {
 	usage := `Desc.
@@ -87,9 +90,9 @@ func convertPages(file, targetDir string, width, height uint) {
 	_, fName := path.Split(file)
 	targetFileDir := path.Join(targetDir, strings.Split(fName, ".")[0])
 	os.MkdirAll(targetFileDir, 0770)
-	pages := GetPdfBytes(file, width, height)
+	pages := pdf2Surface(file, width, height)
 	for n, page := range pages {
-		page.WriteToPNG(fmt.Sprintf("%s/%d.png", targetFileDir, n))
+		page.WriteToPNG(fmt.Sprintf("%s/%05d.png", targetFileDir, n))
 	}
 }
 
@@ -109,7 +112,7 @@ func getFiles(filePath string) []string {
 	return paths
 }
 
-func GetPdfBytes(path string, width, height uint) []*cairo.Surface {
+func pdf2Surface(path string, width, height uint) []*cairo.Surface {
 	doc, err := fitz.New(path)
 	if err != nil {
 		panic(err)
