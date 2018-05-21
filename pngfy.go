@@ -3,29 +3,33 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
 	docopt "github.com/docopt/docopt-go"
-	fitz "github.com/gen2brain/go-fitz"
+	"github.com/gen2brain/go-fitz"
 	"github.com/nfnt/resize"
 	"github.com/schollz/progressbar"
-	cairo "github.com/ungerik/go-cairo"
+	"github.com/ungerik/go-cairo"
 )
 
-var WIDTH = 300
-var HEIGHT = 450
+// WIDTH is based on A4 ratio
+var WIDTH = 210 * 4
+
+// HEIGHT is based on A4 ratio
+var HEIGHT = 297 * 4
 
 func main() {
 	usage := `Desc.
 	Usage:
-	  pngfy DIRECTORY [--target=TARGET][--width=WIDTH][--height=HEIGHT]
+	  pngfy convert DIRECTORY [--target=TARGET][--width=WIDTH][--height=HEIGHT]
+	  pngfy FILE [--target=TARGET][--width=WIDTH][--height=HEIGHT]
 	  pngfy -h | --help
 	Arguments:
-		DIRECTORY         Directory containing the pdf files to be converted
+		DIRECTORY         	Directory containing the pdf files to be converted
+		FILE			  	Single pdf file to be converted
 	Options:
 	  -h --help                     	Show this screen.
 	  --target=TARGET					Target directory for results.
@@ -36,10 +40,11 @@ func main() {
 
 	// operators and parameters
 	targetPath, _ := arguments["DIRECTORY"].(string)
+	targetFile, _ := arguments["FILE"].(string)
 	target, _ := arguments["--target"].(string)
 	_width, _ := arguments["--width"].(string)
 	_height, _ := arguments["--height"].(string)
-
+	convert := arguments["convert"].(bool)
 	width, err := strconv.Atoi(_width)
 	if err != nil {
 		fmt.Printf("Invalid parameter %v for width. Expected int", width)
@@ -61,9 +66,13 @@ func main() {
 
 	dir, _ := path.Split(targetPath)
 	targetDir := path.Join(dir, "target")
-
 	if target != "" {
 		targetDir = target
+	}
+
+	if !convert {
+		convertPages(targetFile, targetDir, uint(width), uint(height))
+		os.Exit(0)
 	}
 
 	files := getFiles(targetPath)
@@ -71,17 +80,20 @@ func main() {
 	fmt.Printf("Processing %d files\n", len(files))
 	bar := progressbar.New(len(files))
 	for _, file := range files {
-		_, fName := path.Split(file)
-		targetFileDir := path.Join(targetDir, strings.Split(fName, ".")[0])
-		os.MkdirAll(targetFileDir, 0770)
-		pages := GetPdfBytes(file, true, uint(width), uint(height))
-		for n, page := range pages {
-			page.WriteToPNG(fmt.Sprintf("%s/%d.png", targetFileDir, n))
-		}
-
+		convertPages(file, targetDir, uint(width), uint(height))
 		bar.Add(1)
 	}
 	fmt.Println()
+}
+
+func convertPages(file, targetDir string, width, height uint) {
+	_, fName := path.Split(file)
+	targetFileDir := path.Join(targetDir, strings.Split(fName, ".")[0])
+	os.MkdirAll(targetFileDir, 0770)
+	pages := pdf2Surface(file, width, height)
+	for n, page := range pages {
+		page.WriteToPNG(fmt.Sprintf("%s/%05d.png", targetFileDir, n))
+	}
 }
 
 func getFiles(filePath string) []string {
@@ -89,7 +101,7 @@ func getFiles(filePath string) []string {
 	var paths []string
 	files, err := ioutil.ReadDir(filePath)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	for _, f := range files {
@@ -100,16 +112,16 @@ func getFiles(filePath string) []string {
 	return paths
 }
 
-func GetPdfBytes(path string, width, height uint) []*cairo.Surface {
+func pdf2Surface(path string, width, height uint) []*cairo.Surface {
 	doc, err := fitz.New(path)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	var pages = make([]*cairo.Surface, doc.NumPage())
 	for n := 0; n < doc.NumPage(); n++ {
 		img, err := doc.Image(n)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
 		resized := resize.Resize(width, height, img, resize.Lanczos2)
