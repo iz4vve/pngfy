@@ -88,6 +88,11 @@ func main() {
 }
 
 func convertPages(file, targetDir string, width, height uint) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
 	dir, fName := path.Split(file)
 	parentDir := strings.Split(strings.Trim(dir, string(os.PathSeparator)), string(os.PathSeparator))
 	parentDirName := parentDir[len(parentDir)-1]
