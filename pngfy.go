@@ -105,7 +105,7 @@ func getFiles(filePath string) []string {
 	var paths []string
 	files, err := ioutil.ReadDir(filePath)
 	if err != nil {
-		panic(err)
+		fmt.Println(filePath, err)
 	}
 
 	for _, f := range files {
@@ -117,6 +117,11 @@ func getFiles(filePath string) []string {
 }
 
 func pdf2Surface(path string, width, height uint) []*cairo.Surface {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
 	doc, err := fitz.New(path)
 	if err != nil {
 		fmt.Println(path, err)
