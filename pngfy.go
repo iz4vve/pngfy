@@ -90,7 +90,6 @@ func main() {
 func convertPages(file, targetDir string, width, height uint) {
 	dir, _ := path.Split(file)
 	parentDir := strings.Split(strings.Trim(dir, string(os.PathSeparator)), string(os.PathSeparator))
-	fmt.Println(parentDir)
 	parentDirName := parentDir[len(parentDir)-1]
 	fmt.Println(parentDirName)
 	targetFileDir := path.Join(targetDir)
