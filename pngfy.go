@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
 	"strings"
@@ -88,20 +89,15 @@ func main() {
 }
 
 func convertPages(file, targetDir string, width, height uint) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
 	dir, fName := path.Split(file)
 	parentDir := strings.Split(strings.Trim(dir, string(os.PathSeparator)), string(os.PathSeparator))
 	parentDirName := parentDir[len(parentDir)-1]
-	targetFileDir := path.Join(targetDir)
-	os.MkdirAll(targetFileDir, 0770)
-	pages := pdf2Surface(file, width, height)
-	for n, page := range pages {
-		// fmt.Println(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
-		page.WriteToPNG(fmt.Sprintf("%s/%s_%s_%05d.png", targetFileDir, parentDirName, fName, n))
+	os.MkdirAll(targetDir, 0770)
+	pages, err := pdf2Surface(file, width, height)
+	if err == nil {
+		for n, page := range pages {
+			page.WriteToPNG(fmt.Sprintf("%s/%s_%s_%05d.png", targetDir, parentDirName, fName, n))
+		}
 	}
 }
 
@@ -121,12 +117,11 @@ func getFiles(filePath string) []string {
 	return paths
 }
 
-func pdf2Surface(path string, width, height uint) []*cairo.Surface {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
+func pdf2Surface(path string, width, height uint) ([]*cairo.Surface, error) {
+	err := checkPdf(path)
+	if err != nil {
+		return nil, err
+	}
 	doc, err := fitz.New(path)
 	if err != nil {
 		fmt.Println(path, err)
@@ -142,5 +137,20 @@ func pdf2Surface(path string, width, height uint) []*cairo.Surface {
 		surface := cairo.NewSurfaceFromImage(resized)
 		pages[n] = surface
 	}
-	return pages
+	return pages, nil
+}
+
+func checkPdf(path string) error {
+	cmd := exec.Command("pdfinfo", path)
+	out, err := cmd.Output()
+	if err != nil {
+		fmt.Println("err:", err)
+		return err
+	}
+
+	output := string(out)
+	if strings.Contains(output, "Error") {
+		return fmt.Errorf("invalid file: %s", path)
+	}
+	return nil
 }
