@@ -91,12 +91,11 @@ func convertPages(file, targetDir string, width, height uint) {
 	dir, _ := path.Split(file)
 	parentDir := strings.Split(strings.Trim(dir, string(os.PathSeparator)), string(os.PathSeparator))
 	parentDirName := parentDir[len(parentDir)-1]
-	fmt.Println(parentDirName)
 	targetFileDir := path.Join(targetDir)
 	os.MkdirAll(targetFileDir, 0770)
 	pages := pdf2Surface(file, width, height)
 	for n, page := range pages {
-		fmt.Println(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
+		// fmt.Println(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
 		page.WriteToPNG(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
 	}
 }
@@ -120,13 +119,13 @@ func getFiles(filePath string) []string {
 func pdf2Surface(path string, width, height uint) []*cairo.Surface {
 	doc, err := fitz.New(path)
 	if err != nil {
-		panic(err)
+		fmt.Println(path, err)
 	}
 	var pages = make([]*cairo.Surface, doc.NumPage())
 	for n := 0; n < doc.NumPage(); n++ {
 		img, err := doc.Image(n)
 		if err != nil {
-			panic(err)
+			fmt.Println(path, n+1, err)
 		}
 
 		resized := resize.Resize(width, height, img, resize.Lanczos2)
