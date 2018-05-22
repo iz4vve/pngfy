@@ -88,7 +88,7 @@ func main() {
 }
 
 func convertPages(file, targetDir string, width, height uint) {
-	dir, _ := path.Split(file)
+	dir, fName := path.Split(file)
 	parentDir := strings.Split(strings.Trim(dir, string(os.PathSeparator)), string(os.PathSeparator))
 	parentDirName := parentDir[len(parentDir)-1]
 	targetFileDir := path.Join(targetDir)
@@ -96,7 +96,7 @@ func convertPages(file, targetDir string, width, height uint) {
 	pages := pdf2Surface(file, width, height)
 	for n, page := range pages {
 		// fmt.Println(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
-		page.WriteToPNG(fmt.Sprintf("%s/%s_%05d.png", targetFileDir, parentDirName, n))
+		page.WriteToPNG(fmt.Sprintf("%s/%s_%s_%05d.png", targetFileDir, parentDirName, fName, n))
 	}
 }
 
